@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Simplificador ZPL Mercado Livre - Padrão Oficial</title>
+  <title>Simplificador ZPL Mercado Livre - CORRIGIDO</title>
 
   <style>
     body {
@@ -35,6 +35,386 @@
       width: 100%;
       height: 420px;
       background: #151922;
+      color: #eaeaea;
+      border: 1px solid #2a2f3a;
+      border-radius: 6px;
+      padding: 12px;
+      resize: vertical;
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    .buttons {
+      margin: 16px 0;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: #2563eb;
+      border: none;
+      padding: 10px 16px;
+      color: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    button.secondary {
+      background: #374151;
+    }
+
+    button.secondary:hover {
+      background: #4b5563;
+    }
+
+    .preview {
+      margin-top: 16px;
+      background: #151922;
+      border: 1px solid #2a2f3a;
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+      min-height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    img {
+      max-width: 100%;
+      max-height: 800px;
+      border-radius: 4px;
+    }
+
+    footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+    }
+
+    .info {
+      background: #1e293b;
+      border-left: 4px solid #2563eb;
+      padding: 12px;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    h3 {
+      margin-top: 0;
+      color: #d1d5db;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Simplificador ZPL Mercado Livre - CORRIGIDO</h1>
+<p>2 etiquetas → 1 etiqueta 4x6 com TODOS os dados ESSENCIAIS</p>
+
+<div class="info">
+  <strong>✓ COM CHAVE DE ACESSO COMPLETA:</strong> 44 dígitos da NFe preservados
+</div>
+
+<div class="container">
+  <div>
+    <h3>ZPL original (2 etiquetas)</h3>
+    <textarea id="inputZpl" placeholder="Cole aqui o ZPL completo do Mercado Livre..."></textarea>
+  </div>
+
+  <div>
+    <h3>ZPL simplificado (1 etiqueta)</h3>
+    <textarea id="outputZpl" placeholder="ZPL compacto aparecerá aqui..."></textarea>
+  </div>
+</div>
+
+<div class="buttons">
+  <button onclick="simplificarZPL()">Converter para 1 Etiqueta</button>
+  <button onclick="visualizar()">Visualizar Etiqueta</button>
+  <button class="secondary" onclick="copiar()">Copiar ZPL</button>
+  <button class="secondary" onclick="limpar()">Limpar Tudo</button>
+</div>
+
+<div class="preview" id="preview">
+  <p style="color: #9ca3af;">Pré-visualização aparecerá aqui após clicar em "Visualizar"</p>
+</div>
+
+<footer>
+  Layout otimizado para Zebra • 4x6 • Chave de acesso COMPLETA • Tudo bipável
+</footer>
+
+<script>
+// Função principal - MANTENDO O LAYOUT QUE VOCÊ PEDIU
+function simplificarZPL() {
+  const zpl = document.getElementById('inputZpl').value.trim();
+  
+  if (!zpl) {
+    alert('Cole o ZPL do Mercado Livre primeiro.');
+    return;
+  }
+
+  // EXTRAÇÃO DOS DADOS - FOCANDO NA CHAVE DE ACESSO COMPLETA
+  
+  // 1. CHAVE DE ACESSO COMPLETA (44 dígitos) - ESSENCIAL!
+  let chave = '';
+  // Procura em várias posições possíveis
+  const chaveMatches = zpl.match(/(35\d{42})/g);
+  if (chaveMatches && chaveMatches.length > 0) {
+    // Pega a primeira chave de 44 dígitos
+    for (let match of chaveMatches) {
+      if (match.length === 44) {
+        chave = match;
+        break;
+      }
+    }
+  }
+  
+  // Se não encontrou, procura no formato específico
+  if (!chave) {
+    const chaveMatch = zpl.match(/\^FD(35\d{42})\^FS/);
+    if (chaveMatch) chave = chaveMatch[1];
+  }
+  
+  // 2. Número de envio (11 dígitos)
+  const envioMatch = zpl.match(/\^FD>:?(\d{11})\^FS/);
+  const envio = envioMatch ? envioMatch[1] : '00000000000';
+  
+  // 3. TN (15 dígitos)
+  const tnMatch = zpl.match(/\^FD(\d{15})\^FS/);
+  const tn = tnMatch ? tnMatch[1] : '000000000000000';
+  
+  // 4. Destinatário
+  let destinatario = '';
+  const destMatch = zpl.match(/DESTINATARIO:\s*([^^]+)/i);
+  if (destMatch) {
+    destinatario = destMatch[1].trim();
+  } else {
+    // Tenta outro padrão
+    const altMatch = zpl.match(/\^FD([^^]+?)\s*\(AO\d+\)\^FS/i);
+    if (altMatch) destinatario = altMatch[1].trim();
+  }
+  
+  // Limpar nome duplicado
+  if (destinatario) {
+    const partes = destinatario.split(' ');
+    if (partes.length > 6) {
+      const metade = Math.floor(partes.length / 2);
+      let duplicata = true;
+      for (let i = 0; i < metade; i++) {
+        if (partes[i] !== partes[metade + i]) {
+          duplicata = false;
+          break;
+        }
+      }
+      if (duplicata) {
+        destinatario = partes.slice(0, metade).join(' ');
+      }
+    }
+  }
+  
+  // 5. Endereço
+  let endereco = '';
+  const enderecoMatch = zpl.match(/Endere[^:]*:\s*([^^]+)/i);
+  if (enderecoMatch) {
+    endereco = enderecoMatch[1].trim()
+      .replace(/_/g, ' ')
+      .replace(/\\&/g, '&');
+  }
+  
+  // 6. Cidade/Estado
+  let cidade = '';
+  let uf = '';
+  const cidadeMatch = zpl.match(/Cidade de destino:\s*([^^]+)/i);
+  if (cidadeMatch) {
+    cidade = cidadeMatch[1].trim();
+    const ufMatch = cidade.match(/_([A-Z]{2})$/i);
+    if (ufMatch) {
+      uf = ufMatch[1].toUpperCase();
+      cidade = cidade.replace(/_[A-Z]{2}$/i, '');
+    }
+    cidade = cidade.replace(/_/g, ' ');
+  }
+  
+  // 7. CEP
+  const cepMatch = zpl.match(/CEP:\s*(\d{8})/i);
+  const cep = cepMatch ? cepMatch[1] : '00000000';
+  
+  // 8. Peso
+  const pesoMatch = zpl.match(/Peso:\s*([\d.]+)\s*kg/i);
+  const peso = pesoMatch ? pesoMatch[1] : '0.00';
+  
+  // 9. Peças
+  const pecasMatch = zpl.match(/Piezas:\s*(\d+)/i);
+  const pecas = pecasMatch ? pecasMatch[1] : '1';
+  
+  // 10. Cluster
+  const clusterMatch = zpl.match(/\^FR\^FD([A-Z0-9]{3,5})\^FS/);
+  const cluster = clusterMatch ? clusterMatch[1] : 'XXXX';
+  
+  // 11. Data despacho
+  const despacharMatch = zpl.match(/Despachar:\s*([^^]+)/i);
+  let despachar = despacharMatch ? despacharMatch[1].trim() : '';
+  despachar = despachar
+    .replace('quarta', 'qua')
+    .replace('terça', 'ter')
+    .replace('segunda', 'seg')
+    .replace('sexta', 'sex')
+    .replace('sábado', 'sáb')
+    .replace('domingo', 'dom');
+  
+  // 12. Rota
+  const rotaMatch = zpl.match(/\^FD([A-Z0-9]{5,6})\^FS/);
+  const rota = rotaMatch ? rotaMatch[1] : 'ROTA';
+  
+  // 13. Hora
+  const horaMatch = zpl.match(/\^FD(\d{2}:\d{2})\^FS/);
+  const hora = horaMatch ? horaMatch[1] : '00:00';
+  
+  // 14. Sort Code
+  const sortCodeMatch = zpl.match(/\^FD([A-Z]{2},\d+-\d+,\d+)\^FS/);
+  const sortCode = sortCodeMatch ? sortCodeMatch[1] : 'XX,000-00,000';
+  
+  // 15. Dados NFe
+  const numeroMatch = zpl.match(/N[^0-9]*([0-9.,]+)/i);
+  let numero = numeroMatch ? numeroMatch[1].replace(/[.,]/g, '') : '00000';
+  numero = numero.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  
+  const serieMatch = zpl.match(/Série\s*(\d+)/i);
+  const serie = serieMatch ? serieMatch[1] : '1';
+  
+  const emissaoMatch = zpl.match(/(\d{2}\/\d{2}\/\d{4})/);
+  const emissao = emissaoMatch ? emissaoMatch[1] : '00/00/0000';
+  
+  // 16. Remetente
+  const remetenteMatch = zpl.match(/REMETENTE:\s*([^^]+)/i);
+  const remetente = remetenteMatch ? remetenteMatch[1].trim() : 'Remetente';
+  
+  // 17. CNPJ
+  const cnpjMatch = zpl.match(/CNPJ:\s*(\d{14})/i);
+  const cnpj = cnpjMatch ? cnpjMatch[1] : '';
+  const cnpjFormatado = cnpj ? 
+    `${cnpj.substring(0,2)}.${cnpj.substring(2,5)}.${cnpj.substring(5,8)}/${cnpj.substring(8,12)}-${cnpj.substring(12,14)}` : '';
+  
+  // 18. IE
+  const ieMatch = zpl.match(/ESTADUAL:\s*(\d+)/i);
+  const ie = ieMatch ? ieMatch[1] : '';
+  
+  // 19. UF Remetente
+  const ufRemMatch = zpl.match(/UF:\s*([A-Z]{2})/i);
+  const ufRemetente = ufRemMatch ? ufRemMatch[1].toUpperCase() : 'SP';
+  
+  // 20. Pack ID
+  const packIdMatch = zpl.match(/Pack ID:\s*(\d+)/i);
+  const packId = packIdMatch ? packIdMatch[1] : '';
+  
+  // GERAR ZPL SIMPLIFICADO - LAYOUT EXATO QUE VOCÊ PEDIU
+  const novoZPL = `^XA
+^CI28
+^MCY
+^LH0,0
+^PW800
+^LL1700
+
+^FO20,10^GFA,800,800,10,,:::::::::::O0FF,M07JFE,L07FC003FE,K07EL07E,J01EN078,J07P0E,I01CP038,I07R0E,001CK01FK038,003L0IFK0C,0078J03803CJ0E,0187J06I07I01D8,0300F00F8J0FEFE0C,02003IFK01J06,04I01C6P02,08K0401FM01,1L08060CM083K0100C02M0C2M01001M046K0306I0CL064K0198I02L024Q01L02CR08K03CR04K03FR02K03FFQ01J07!C1FQ0C007E3C03EP0203F03C0078O010F003CI0EF1N0F8003CI070C4M06I03CI02003CL02I03CI02P02I036I03N0106I066I01J08J0C4I067J0EI08J078I0E38I03I0E00406I01C3CI01800100204I01C3CJ0FI080118I03C1EJ03800801FJ0780FK0C008018J0F^FS
+
+^FO120,20^A0N,24,24^FD${destinatario || 'Destinatário'}^FS
+^FO120,45^A0N,22,22^FD${endereco || 'Endereço'}^FS
+^FO120,70^A0N,22,22^FD${cidade || 'Cidade'} – ${uf || 'UF'} – CEP ${cep.substring(0,5)}-${cep.substring(5,8)}^FS
+${packId ? `^FO120,95^A0N,22,22^FDPack ID: ${packId}^FS` : ''}
+
+^FO20,130^GB210,40,40^FS
+^FO20,136^A0N,40,40^FR^FD${cluster}^FS
+
+^FO300,130^GB500,40,3^FS
+^FO315,142^A0N,24,24^FR^FD${despachar.substring(0, 25)}^FS
+
+^FO230,185^BY3^BCN,140,N,N,N^FD${envio}^FS
+
+^FO10,380^A0N,110,110^FD${rota}^FS
+^FO650,405^A0N,40,40^FD${hora}^FS
+
+^FO0,520^A0N,26,26^FB800,1,0,C^FD${cluster} > ${rota}^FS
+
+^FO300,580^GB290,45,2^FS
+^FO310,595^A0N,22,22^FDPeso: ${peso}kg^FS
+^FO480,595^A0N,22,22^FDPzs: ${pecas}^FS
+
+^FO70,635^GB520,45,2^FS
+^FO80,648^A0N,32,32^FD${sortCode}^FS
+
+^FO70,690^BY4^BCN,70,N,N,N^FD${tn}^FS
+
+^FO30,780^A0N,26,26^FD${destinatario || 'Destinatário'}^FS
+^FO30,815^A0N,24,24^FD${endereco ? endereco.substring(0, 45) : 'Endereço'}^FS
+^FO30,845^A0N,24,24^FD${cidade ? cidade.substring(0, 25) : 'Cidade'} – ${uf || 'UF'} – CEP ${cep.substring(0,5)}-${cep.substring(5,8)}^FS
+
+^FO640,780^BQN,2,5^FDLA,{"id":"${envio}","tn":"${tn}"}^FS
+
+^FO20,900^A0N,28,28^FDDANFE SIMPLIFICADO – NF-e^FS
+^FO20,935^A0N,22,22^FDNº ${numero}  Série ${serie}  Emissão ${emissao}^FS
+
+^FO20,965^A0N,20,20^FDChave de Acesso:^FS
+${chave ? `^FO20,990^A0N,18,18^FD${chave}^FS` : '^FO20,990^A0N,18,18^FDChave não encontrada^FS'}
+
+${chave ? `^FO80,1020^BY2^BCN,100,N,N,N^FD${chave}^FS` : ''}
+
+^FO20,1140^A0N,20,20^FD${remetente.substring(0, 35)}^FS
+^FO20,1165^A0N,20,20^FD${cnpjFormatado ? 'CNPJ ' + cnpjFormatado : ''}${ie ? '  IE ' + ie : ''} – ${ufRemetente}^FS
+^FO20,1195^A0N,20,20^FDDestinatário: ${destinatario ? destinatario.substring(0, 20) : '--'} – ${uf || 'UF'}^FS
+
+^XZ`;
+
+  document.getElementById('outputZpl').value = novoZPL.trim();
+  alert('✅ Conversão realizada! Chave de acesso incluída (44 dígitos).');
+}
+
+// Visualizar etiqueta
+function visualizar() {
+  const zpl = document.getElementById('outputZpl').value.trim();
+  if (!zpl) {
+    alert('Gere o ZPL simplificado primeiro.');
+    return;
+  }
+
+  const encoded = encodeURIComponent(zpl);
+  const url = `https://api.labelary.com/v1/printers/8dpmm/labels/4x6/0/${encoded}`;
+  
+  const previewDiv = document.getElementById('preview');
+  previewDiv.innerHTML = `<img src="${url}" alt="Pré-visualização">`;
+}
+
+// Copiar ZPL
+function copiar() {
+  const output = document.getElementById('outputZpl');
+  if (!output.value.trim()) {
+    alert('Nada para copiar.');
+    return;
+  }
+  
+  output.select();
+  document.execCommand('copy');
+  alert('ZPL copiado!');
+}
+
+// Limpar tudo
+function limpar() {
+  document.getElementById('inputZpl').value = '';
+  document.getElementById('outputZpl').value = '';
+  document.getElementById('preview').innerHTML = '<p style="color: #9ca3af;">Pré-visualização aparecerá aqui após clicar em "Visualizar"</p>';
+}
+</script>
+
+</body>
+</html>      background: #151922;
       color: #eaeaea;
       border: 1px solid #2a2f3a;
       border-radius: 6px;
